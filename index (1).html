@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GNUH-IH-credit</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Noto Sans KR', sans-serif; background: linear-gradient(135deg, #0f1923 0%, #1a2b3c 50%, #0d2137 100%); min-height: 100vh; color: #e8f0f8; }
+@keyframes fadeUp { from { transform: translateY(16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes slideIn { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+.header { background: rgba(0,0,0,0.4); border-bottom: 1px solid rgba(255,255,255,0.07); padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; backdrop-filter: blur(12px); }
+.logo-wrap { display: flex; align-items: center; gap: 12px; }
+.logo-icon { width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, #3498db, #2ecc71); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+.logo-title { font-weight: 700; font-size: 17px; }
+.logo-sub { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 1px; }
+.nav { display: flex; gap: 8px; }
+.nav-btn { padding: 8px 18px; border: none; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; transition: all 0.2s; background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.55); }
+.nav-btn:hover { background: rgba(255,255,255,0.12); transform: translateY(-1px); }
+.nav-btn.active { background: linear-gradient(135deg, #3498db, #2980b9); color: #fff; }
+
+.main { padding: 28px 32px; max-width: 1200px; margin: 0 auto; }
+.view { display: none; animation: fadeUp 0.35s ease; }
+.view.active { display: block; }
+
+.card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; transition: background 0.2s; }
+.card:hover { background: rgba(255,255,255,0.075); }
+
+/* Stats */
+.stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 24px; }
+.stat-card { padding: 18px 20px; display: flex; align-items: center; gap: 14px; }
+.stat-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+.stat-num { font-size: 26px; font-weight: 800; }
+.stat-label { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+
+/* Token grid */
+.section-label { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; }
+.token-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 24px; }
+.prof-card { padding: 20px; }
+.prof-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.prof-avatar { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; flex-shrink: 0; }
+.prof-name { font-weight: 700; font-size: 15px; }
+.prof-dept { font-size: 10px; color: rgba(255,255,255,0.35); }
+.prof-tokens { margin-left: auto; text-align: right; }
+.token-num { font-size: 30px; font-weight: 800; line-height: 1; }
+.token-lbl { font-size: 10px; color: rgba(255,255,255,0.3); }
+.bar-bg { height: 5px; background: rgba(255,255,255,0.07); border-radius: 5px; overflow: hidden; margin-bottom: 12px; position: relative; }
+.bar { height: 100%; border-radius: 5px; transition: width 0.6s ease; }
+.no-tx { font-size: 11px; color: rgba(255,255,255,0.18); text-align: center; padding: 8px 0; }
+
+/* Flow boxes */
+.flow-rcv { background: rgba(46,204,113,0.07); border: 1px solid rgba(46,204,113,0.18); border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; }
+.flow-gvn { background: rgba(231,76,60,0.07); border: 1px solid rgba(231,76,60,0.18); border-radius: 8px; padding: 8px 10px; }
+.flow-title { font-size: 10px; font-weight: 700; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.4px; }
+.flow-row { font-size: 11px; color: rgba(255,255,255,0.5); display: flex; justify-content: space-between; align-items: flex-start; margin-top: 4px; gap: 8px; }
+.flow-row-left { flex: 1; }
+.flow-date { color: rgba(255,255,255,0.25); font-size: 10px; white-space: nowrap; }
+.flow-detail { font-size: 10px; color: rgba(255,255,255,0.3); margin-top: 1px; }
+
+/* Vacation list */
+.vac-row { padding: 14px 20px; display: flex; align-items: center; gap: 14px; margin-bottom: 8px; flex-wrap: wrap; }
+.mini-av { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0; }
+.token-badge-pos { padding: 4px 12px; background: rgba(46,204,113,0.12); border: 1px solid rgba(46,204,113,0.28); border-radius: 8px; font-size: 13px; font-weight: 700; color: #2ecc71; }
+.token-badge-neg { padding: 4px 12px; background: rgba(231,76,60,0.12); border: 1px solid rgba(231,76,60,0.28); border-radius: 8px; font-size: 13px; font-weight: 700; color: #e74c3c; }
+
+/* Form */
+.form-wrap { max-width: 640px; margin: 0 auto; }
+.form-card { padding: 34px; }
+.form-title { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+.form-sub { font-size: 13px; color: rgba(255,255,255,0.38); margin-bottom: 24px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.form-group { margin-bottom: 14px; }
+label { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; display: block; }
+select, input[type="date"], input[type="text"], input[type="number"] {
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 10px; color: #e8f0f8; padding: 10px 14px; font-size: 14px; width: 100%;
+  outline: none; font-family: 'Noto Sans KR', sans-serif; transition: border-color 0.2s, background 0.2s;
+}
+select:focus, input:focus { border-color: rgba(100,180,255,0.5); background: rgba(255,255,255,0.12); }
+select option { background: #1a2b3c; color: #e8f0f8; }
+
+/* Section tabs inside form */
+.type-tabs { display: flex; gap: 0; margin-bottom: 20px; border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
+.type-tab { flex: 1; padding: 12px; text-align: center; cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.2s; background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.45); border: none; font-family: 'Noto Sans KR', sans-serif; }
+.type-tab:first-child { border-right: 1px solid rgba(255,255,255,0.1); }
+.type-tab.active { background: rgba(52,152,219,0.2); color: #64b8ff; }
+.type-tab:hover:not(.active) { background: rgba(255,255,255,0.07); }
+
+/* Section blocks */
+.section-block { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+.section-block-title { font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.5); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+
+.inpt-row { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 10px; }
+.inpt-row > div { flex: 1; }
+.days-badge { background: rgba(52,152,219,0.15); border: 1px solid rgba(52,152,219,0.3); border-radius: 8px; padding: 10px 14px; font-size: 13px; font-weight: 700; color: #64b8ff; white-space: nowrap; display: flex; align-items: center; justify-content: center; min-width: 80px; }
+
+/* Outpatient counter */
+.counter-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.counter-btn { width: 36px; height: 36px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.07); color: #e8f0f8; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: 700; transition: all 0.2s; flex-shrink: 0; font-family: 'Noto Sans KR', sans-serif; }
+.counter-btn:hover { background: rgba(255,255,255,0.15); }
+.counter-num { font-size: 22px; font-weight: 800; min-width: 32px; text-align: center; }
+.counter-label { font-size: 13px; color: rgba(255,255,255,0.5); }
+
+/* Token summary */
+.token-summary { background: rgba(52,152,219,0.08); border: 1px solid rgba(52,152,219,0.2); border-radius: 12px; padding: 16px; margin-bottom: 18px; }
+.token-summary-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: rgba(255,255,255,0.5); margin-bottom: 6px; }
+.token-summary-row:last-child { margin-bottom: 0; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.08); }
+.token-summary-row.total { font-size: 15px; font-weight: 700; color: #e8f0f8; }
+.token-val { font-weight: 700; color: #64b8ff; }
+.token-val.total { font-size: 22px; color: #3498db; }
+
+.preview-box { background: rgba(52,152,219,0.09); border: 1px solid rgba(52,152,219,0.22); border-radius: 10px; padding: 12px 16px; margin-bottom: 18px; font-size: 13px; display: none; }
+.submit-btn { width: 100%; padding: 14px; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; background: linear-gradient(135deg, #27ae60, #2ecc71); color: #fff; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; transition: all 0.2s; }
+.submit-btn:hover { transform: translateY(-2px); filter: brightness(1.08); }
+.submit-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+/* History */
+.hist-row { padding: 16px 20px; display: flex; align-items: center; gap: 14px; margin-bottom: 8px; flex-wrap: wrap; }
+.tx-date { font-size: 11px; color: rgba(255,255,255,0.28); min-width: 72px; }
+.tx-arrow { display: flex; flex-direction: column; align-items: center; min-width: 90px; gap: 2px; }
+.tx-badge-main { padding: 4px 14px; background: rgba(52,152,219,0.15); border: 1px solid rgba(52,152,219,0.25); border-radius: 20px; font-size: 13px; font-weight: 800; color: #64b8ff; }
+.tx-arr { font-size: 16px; color: rgba(255,255,255,0.3); }
+.tx-detail-sm { font-size: 10px; color: rgba(255,255,255,0.3); text-align: center; }
+.tx-meta { margin-left: auto; text-align: right; }
+.tx-period { font-size: 12px; color: rgba(255,255,255,0.38); }
+.tx-note { font-size: 11px; color: rgba(255,255,255,0.25); }
+.empty { padding: 60px; text-align: center; color: rgba(255,255,255,0.25); font-size: 15px; }
+
+#toast { position: fixed; top: 24px; right: 24px; z-index: 9999; padding: 14px 22px; border-radius: 12px; font-weight: 600; font-size: 14px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); animation: slideIn 0.3s ease; display: none; color: #fff; }
+
+.divider { height: 1px; background: rgba(255,255,255,0.07); margin: 14px 0; }
+
+@media (max-width: 900px) { .stats-grid { grid-template-columns: repeat(2,1fr); } .token-grid { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 600px) { .stats-grid, .token-grid { grid-template-columns: 1fr; } .form-grid { grid-template-columns: 1fr; } .main { padding: 16px; } .header { flex-direction: column; gap: 12px; } .nav { flex-wrap: wrap; justify-content: center; } }
+
+.reset-btn { padding: 8px 16px; border: 1px solid rgba(231,76,60,0.4); border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; background: rgba(231,76,60,0.1); color: #e74c3c; }
+.reset-btn:hover { background: rgba(231,76,60,0.22); transform: translateY(-1px); }
+@keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }
+.modal-overlay { position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.25s; }
+.modal-overlay.open { opacity:1;pointer-events:all; }
+.modal-box { background:linear-gradient(145deg,#1c2d40,#0f1923);border:1px solid rgba(255,255,255,0.1);border-radius:22px;padding:36px;width:420px;max-width:92vw;transform:translateY(20px) scale(0.97);transition:transform 0.25s;box-shadow:0 30px 80px rgba(0,0,0,0.5); }
+.modal-overlay.open .modal-box { transform:translateY(0) scale(1); }
+.modal-icon-big { font-size:42px;margin-bottom:16px;display:block; }
+.modal-title2 { font-size:19px;font-weight:800;margin-bottom:6px; }
+.modal-sub2 { font-size:13px;color:rgba(255,255,255,0.42);margin-bottom:20px;line-height:1.65; }
+.modal-warn2 { background:rgba(231,76,60,0.09);border:1px solid rgba(231,76,60,0.22);border-radius:10px;padding:12px 14px;font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:20px;line-height:1.75; }
+.modal-warn2 strong { color:#f1948a; }
+.modal-pw-input { background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:#e8f0f8;padding:12px 14px;font-size:15px;width:100%;outline:none;letter-spacing:3px;margin-bottom:6px;transition:border-color 0.2s; }
+.modal-pw-input:focus { border-color:rgba(231,76,60,0.5);background:rgba(255,255,255,0.11); }
+.modal-pw-input.shake { animation:shake 0.4s ease;border-color:#e74c3c !important; }
+.modal-err2 { font-size:12px;color:#e74c3c;margin-bottom:14px;min-height:18px; }
+.modal-btn-row2 { display:flex;gap:10px; }
+.modal-cancel2 { flex:1;padding:12px;border:1px solid rgba(255,255,255,0.12);border-radius:10px;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.6);cursor:pointer;font-size:14px;font-weight:600;transition:all 0.2s; }
+.modal-cancel2:hover { background:rgba(255,255,255,0.1); }
+.modal-ok2 { flex:2;padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#c0392b,#e74c3c);color:#fff;cursor:pointer;font-size:14px;font-weight:700;transition:all 0.2s; }
+.modal-ok2:hover { filter:brightness(1.1);transform:translateY(-1px); }
+.mhidden { display:none; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+function exportExcel() {
+  if(state.transactions.length === 0){ showToast('저장할 기록이 없습니다.', 'error'); return; }
+  var wb = XLSX.utils.book_new();
+
+  // Sheet 1: 토큰 현황
+  var tokenData = [['이름','현재 토큰','받은 토큰 합계','준 토큰 합계']];
+  state.professors.forEach(function(p){
+    var rcv = state.transactions.filter(function(t){return t.to.id===p.id;}).reduce(function(s,t){return s+t.total;},0);
+    var gvn = state.transactions.filter(function(t){return t.from.id===p.id;}).reduce(function(s,t){return s+t.total;},0);
+    tokenData.push([p.name, p.tokens, rcv, gvn]);
+  });
+  var ws1 = XLSX.utils.aoa_to_sheet(tokenData);
+  XLSX.utils.book_append_sheet(wb, ws1, '토큰현황');
+
+  // Sheet 2: 전체 내역
+  var txData = [['날짜','휴가교수','백업교수','총토큰','입원일수','입원토큰','외래횟수','외래토큰','메모']];
+  state.transactions.forEach(function(tx){
+    var d = new Date(tx.date);
+    var ds = d.getFullYear()+'.'+(d.getMonth()+1).toString().padStart(2,'0')+'.'+d.getDate().toString().padStart(2,'0');
+    var periods = tx.inptPeriods.map(function(p){return p.start+'~'+p.end+'('+p.days+'일)';}).join(', ');
+    txData.push([ds, tx.from.name, tx.to.name, tx.total, tx.inptDays, tx.inptTokens, tx.outptCount, tx.outpExact, tx.note||'']);
+  });
+  var ws2 = XLSX.utils.aoa_to_sheet(txData);
+  XLSX.utils.book_append_sheet(wb, ws2, '크레딧내역');
+
+  var today = new Date();
+  var fn = 'GNUH-IH-credit_'+today.getFullYear()+(today.getMonth()+1).toString().padStart(2,'0')+today.getDate().toString().padStart(2,'0')+'.xlsx';
+  XLSX.writeFile(wb, fn);
+}
+</script>
+
+<script>
+// ── Supabase 설정 ─────────────────────────────────────────
+const SUPA_URL = 'https://cntjphqwdwsmsvwawwnf.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNudGpwaHF3ZHdzbXN2d2F3d25mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2NTQyNjYsImV4cCI6MjA4ODIzMDI2Nn0.dkfSw_rviA01oKutr437CKPvuN5um_7_DvfuKdh3uGQ';
+
+async function supaFetch(path, method, body) {
+  const m = method || 'GET';
+  const headers = {
+    'apikey': SUPA_KEY,
+    'Authorization': 'Bearer ' + SUPA_KEY,
+    'Content-Type': 'application/json'
+  };
+  if (m === 'POST') headers['Prefer'] = 'return=minimal';
+  if (m === 'DELETE') headers['Prefer'] = 'return=minimal';
+  const res = await fetch(SUPA_URL + '/rest/v1/' + path, {
+    method: m,
+    headers: headers,
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    console.error('Supabase error:', m, path, err);
+    throw new Error(err);
+  }
+  const ct = res.headers.get('content-type') || '';
+  if (ct.includes('json') && m === 'GET') return res.json();
+  return true;
+}
+
+// DB에서 전체 거래 내역 불러오기
+async function loadFromDB() {
+  try {
+    console.log('DB 로드 시작...');
+    const rows = await supaFetch('transactions?order=date.desc&select=*', 'GET');
+    console.log('DB 로드 완료:', rows.length, '건');
+    state.transactions = rows.map(r => ({
+      id: r.id,
+      date: r.date,
+      from: { id: r.from_id, name: r.from_name, color: r.from_color, initials: r.from_initials },
+      to:   { id: r.to_id,   name: r.to_name,   color: r.to_color,   initials: r.to_initials },
+      total: r.total,
+      inptTokens: r.inpt_tokens,
+      outpExact: r.outp_exact,
+      inptDays: r.inpt_days,
+      outptCount: r.outpt_count,
+      inptPeriods: r.inpt_periods || [],
+      note: r.note || ''
+    }));
+    // 토큰 재계산
+    state.professors = PROFS.map(p => ({...p, tokens: 0}));
+    state.transactions.forEach(tx => {
+      state.professors = state.professors.map(p => {
+        if (p.id === tx.from.id) return {...p, tokens: p.tokens - tx.total};
+        if (p.id === tx.to.id)   return {...p, tokens: p.tokens + tx.total};
+        return p;
+      });
+    });
+    state.vacations = [...state.transactions];
+    state.inptCount = state.transactions.filter(t => t.inptDays > 0).length;
+    state.outpCount = state.transactions.filter(t => t.outptCount > 0).length;
+    renderDashboard();
+    populateSelects();
+  } catch(e) {
+    console.error('DB 로드 오류:', e);
+    showToast('데이터 로드 실패. 네트워크를 확인하세요.', 'error');
+  }
+}
+
+// DB에 거래 저장
+async function saveToDB(tx) {
+  try {
+    await supaFetch('transactions', 'POST', {
+      id: tx.id,
+      date: tx.date,
+      from_id: tx.from.id,
+      from_name: tx.from.name,
+      from_color: tx.from.color,
+      from_initials: tx.from.initials,
+      to_id: tx.to.id,
+      to_name: tx.to.name,
+      to_color: tx.to.color,
+      to_initials: tx.to.initials,
+      total: tx.total,
+      inpt_tokens: tx.inptTokens,
+      outp_exact: tx.outpExact,
+      inpt_days: tx.inptDays,
+      outpt_count: tx.outptCount,
+      inpt_periods: tx.inptPeriods,
+      note: tx.note || ''
+    });
+    return true;
+  } catch(e) {
+    console.error('DB 저장 오류:', e);
+    showToast('저장 실패! 네트워크 또는 권한 오류: ' + e.message, 'error');
+    return false;
+  }
+}
+
+// DB 전체 삭제 (리셋)
+async function deleteAllFromDB() {
+  try {
+    await supaFetch('transactions?id=neq.NEVER_MATCH_THIS', 'DELETE');
+    // 위 방법이 안되면 아래 방법
+    const rows = await supaFetch('transactions?select=id', 'GET');
+    for (const r of rows) {
+      await supaFetch('transactions?id=eq.' + r.id, 'DELETE');
+    }
+    return true;
+  } catch(e) {
+    console.error('DB 삭제 오류:', e);
+    return false;
+  }
+}
+</script>
+</head>
+<body>
+<div id="toast"></div>
+<div class="modal-overlay" id="reset-modal"><div class="modal-box">
+<div id="mstep1"><span class="modal-icon-big">&#128272;</span>
+<div class="modal-title2">&#44288;&#47532;&#51088; &#51064;&#51613;</div>
+<div class="modal-sub2">이 기능은 <strong>관리자만</strong> 사용할 수 있습니다.<br>관리자 비밀번호를 입력해주세요.</div>
+<div class="modal-warn2">&#x26A0;&#xFE0F; <strong>주의</strong>: Reset시 모든 기록이 삭제되어 <strong>복구가 불가능</strong>합니다.</div>
+<input type="password" class="modal-pw-input" id="modal-pw" placeholder="&#48708;&#48128;&#48264;&#54840; &#51077;&#47141;" onkeydown="if(event.key===String.fromCharCode(13))confirmReset()">
+<div class="modal-err2" id="modal-err"></div>
+<div class="modal-btn-row2">
+<button class="modal-cancel2" onclick="closeModal()">&#52712;&#49548;</button>
+<button class="modal-ok2" onclick="confirmReset()">&#128275; &#51064;&#51613; &#54980; &#47532;&#49483;</button>
+</div></div>
+<div id="mstep_confirm" class="mhidden"><div style="padding:10px 0">
+<div style="font-size:42px;margin-bottom:16px;text-align:center">&#x26A0;&#xFE0F;</div>
+<p style="font-size:14px;line-height:1.8;color:rgba(255,255,255,0.75);margin-bottom:24px;text-align:center">정말 reset을 진행하시겠습니까?<br><strong style="color:#f1948a">모든 기록과 토큰이 삭제되며<br>복구가 불가능합니다</strong></p>
+<div style="display:flex;gap:10px">
+<button class="modal-cancel2" onclick="closeModal()">취소</button>
+<button class="modal-ok2" style="flex:2;padding:12px" onclick="doReset()">네, 리셋을 진행하겠습니다</button>
+</div></div></div>
+<div id="mstep2" class="mhidden"><div style="text-align:center;padding:10px 0">
+<div style="font-size:52px;margin-bottom:14px">&#x2705;</div>
+<h3 style="font-size:18px;font-weight:700;margin-bottom:8px">기록이 지워졌습니다</h3>
+<p style="margin-bottom:20px;font-size:13px;color:rgba(255,255,255,0.45)">모든 토큰과 휴가 기록이<br>초기화되었습니다.</p>
+<button class="modal-ok2" style="width:100%;padding:12px" onclick="closeModal()">확인</button>
+</div></div>
+</div></div>
+<div class="header">
+  <div class="logo-wrap">
+    <div class="logo-icon">🏥</div>
+    <div>
+      <div class="logo-title">경상국립대병원 IH 휴가 크레딧 시스템</div>
+      <div class="logo-sub">혈액종양내과 · Gyeongsang National University Hospital</div>
+    </div>
+  </div>
+  <nav class="nav">
+    <button class="nav-btn active" onclick="showView('dashboard',this)">📊 대시보드</button>
+    <button class="nav-btn" onclick="showView('addVacation',this)">✈️ 휴가 등록</button>
+    <button class="nav-btn" onclick="showView('history',this)">📋 내역</button>
+    <div style="width:1px;height:24px;background:rgba(255,255,255,0.1);margin:0 4px"></div>
+    <button class="reset-btn" onclick="openModal()">🔄 전체 리셋</button>
+    <button onclick="exportExcel()" style="padding:6px 12px;border:1px solid rgba(46,204,113,0.4);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;background:rgba(46,204,113,0.1);color:#2ecc71;font-family:Noto Sans KR,sans-serif;transition:all 0.2s" onmouseover="this.style.background='rgba(46,204,113,0.22)'" onmouseout="this.style.background='rgba(46,204,113,0.1)'">📥 엑셀 저장</button>
+  </nav>
+</div>
+
+<div class="main">
+
+  <!-- DASHBOARD -->
+  <div id="view-dashboard" class="view active">
+    <div class="stats-grid">
+      <div class="card stat-card">
+        <div class="stat-icon" style="background:rgba(52,152,219,0.15);border:1px solid rgba(52,152,219,0.3)">👥</div>
+        <div><div class="stat-num" id="stat-profs">6</div><div class="stat-label">총 교수</div></div>
+      </div>
+      <div class="card stat-card">
+        <div class="stat-icon" style="background:rgba(46,204,113,0.15);border:1px solid rgba(46,204,113,0.3)">🔄</div>
+        <div><div class="stat-num" id="stat-txs">0</div><div class="stat-label">총 크레딧 이전</div></div>
+      </div>
+      <div class="card stat-card">
+        <div class="stat-icon" style="background:rgba(230,126,34,0.15);border:1px solid rgba(230,126,34,0.3)">🏥</div>
+        <div><div class="stat-num" id="stat-inpt">0</div><div class="stat-label">입원 등록</div></div>
+      </div>
+      <div class="card stat-card">
+        <div class="stat-icon" style="background:rgba(155,89,182,0.15);border:1px solid rgba(155,89,182,0.3)">🩺</div>
+        <div><div class="stat-num" id="stat-outp">0</div><div class="stat-label">외래 등록</div></div>
+      </div>
+    </div>
+    <div class="section-label">토큰 현황</div>
+    <div class="token-grid" id="token-grid"></div>
+    <div id="vac-section" style="display:none">
+      <div class="section-label">휴가 내역</div>
+      <div id="vac-list"></div>
+    </div>
+  </div>
+
+  <!-- ADD VACATION -->
+  <div id="view-addVacation" class="view">
+    <div class="form-wrap">
+      <div class="card form-card">
+        <div class="form-title">✈️ 휴가 & 크레딧 등록</div>
+        <div class="form-sub">입원 일수와 외래 횟수를 입력하면 토큰이 자동 계산됩니다</div>
+
+        <div class="form-grid">
+          <div>
+            <label>휴가 가는 교수 *</label>
+            <select id="f-vac" onchange="updateAll()">
+              <option value="">선택하세요</option>
+            </select>
+          </div>
+          <div>
+            <label>백업하는 교수 *</label>
+            <select id="f-bak" onchange="updateAll()">
+              <option value="">선택하세요</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>메모 (선택)</label>
+          <input type="text" id="f-note" placeholder="예: 학회 참석, 가족 행사 등">
+        </div>
+
+        <!-- 입원 섹션 -->
+        <div class="section-block">
+          <div class="section-block-title">🏥 입원환자 커버</div>
+          <div id="inpt-list"></div>
+          <button onclick="addInptRow()" style="background:rgba(52,152,219,0.12);border:1px dashed rgba(52,152,219,0.35);border-radius:8px;padding:8px 14px;color:#64b8ff;cursor:pointer;font-size:13px;font-weight:600;width:100%;font-family:'Noto Sans KR',sans-serif;transition:all 0.2s;" onmouseover="this.style.background='rgba(52,152,219,0.2)'" onmouseout="this.style.background='rgba(52,152,219,0.12)'">+ 입원 기간 추가</button>
+          <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;font-size:12px;color:rgba(255,255,255,0.4);">
+            <span>총 입원 일수</span>
+            <span id="inpt-total-days" style="font-weight:700;color:#64b8ff;font-size:14px">0일 = 0 토큰</span>
+          </div>
+        </div>
+
+        <!-- 외래 섹션 -->
+        <div class="section-block">
+          <div class="section-block-title">🩺 외래 커버</div>
+          <div style="display:flex;align-items:center;gap:16px;margin-bottom:8px;">
+            <div style="flex:1">
+              <label style="margin-bottom:4px">외래 횟수</label>
+              <div class="counter-row">
+                <button class="counter-btn" onclick="changeOutpt(-1)">−</button>
+                <div class="counter-num" id="outp-count">0</div>
+                <button class="counter-btn" onclick="changeOutpt(1)">+</button>
+                <span class="counter-label">회</span>
+              </div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:11px;color:rgba(255,255,255,0.35);margin-bottom:4px">외래 1회 = 0.5 토큰</div>
+              <div id="outp-tokens" style="font-size:18px;font-weight:800;color:#a78bfa">0 토큰</div>
+            </div>
+          </div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.28);">※ 외래 2회마다 1토큰으로 계산됩니다</div>
+        </div>
+
+        <!-- 토큰 합산 -->
+        <div class="token-summary" id="token-summary">
+          <div class="token-summary-row">
+            <span>🏥 입원 토큰</span>
+            <span class="token-val" id="sum-inpt">0</span>
+          </div>
+          <div class="token-summary-row">
+            <span>🩺 외래 토큰</span>
+            <span class="token-val" id="sum-outp">0</span>
+          </div>
+          <div class="token-summary-row total">
+            <span>총 크레딧 토큰</span>
+            <span class="token-val total" id="sum-total">0</span>
+          </div>
+        </div>
+
+        <div class="preview-box" id="preview-box"></div>
+        <button class="submit-btn" onclick="submitForm()" id="submit-btn">크레딧 이전 완료 ✓</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div id="view-history" class="view">
+    <div class="section-label">전체 크레딧 이전 내역</div>
+    <div id="history-list"><div class="card empty">아직 크레딧 이전 내역이 없습니다</div></div>
+  </div>
+
+</div>
+
+<script>
+const PROFS = [
+  {id:1, name:"강정훈", color:"#E8A87C", initials:"강"},
+  {id:2, name:"송하나", color:"#85C1E9", initials:"송"},
+  {id:3, name:"이경원", color:"#82E0AA", initials:"이경"},
+  {id:4, name:"이우제", color:"#BB8FCE", initials:"이우"},
+  {id:5, name:"이원섭", color:"#F1948A", initials:"이원"},
+  {id:6, name:"정은정", color:"#F7DC6F", initials:"정"},
+];
+
+let state = {
+  professors: PROFS.map(p => ({...p, tokens: 0})),
+  transactions: [],
+  vacations: [],
+  inptCount: 0,
+  outpCount: 0
+};
+
+let inptRows = []; // [{start, end, days}]
+let outptCount = 0;
+
+// ── 뷰 전환 ──────────────────────────────────────────────────
+function showView(id, btn) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('view-' + id).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (id === 'dashboard') renderDashboard();
+  if (id === 'addVacation') { populateSelects(); renderInptRows(); }
+  if (id === 'history') renderHistory();
+}
+
+// ── 토스트 ──────────────────────────────────────────────────
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = type === 'error' ? '#c0392b' : '#1abc9c';
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 3500);
+}
+
+// ── 날짜 계산 ──────────────────────────────────────────────
+function calcDays(start, end) {
+  if (!start || !end) return 0;
+  const s = new Date(start), e = new Date(end);
+  if (e < s) return 0;
+  return Math.round((e - s) / (1000*60*60*24)) + 1;
+}
+
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// ── 입원 rows ─────────────────────────────────────────────
+function addInptRow() {
+  inptRows.push({start:'', end:'', days:0});
+  renderInptRows();
+}
+
+function removeInptRow(idx) {
+  inptRows.splice(idx, 1);
+  renderInptRows();
+  updateAll();
+}
+
+function renderInptRows() {
+  const cont = document.getElementById('inpt-list');
+  cont.innerHTML = '';
+  if (inptRows.length === 0) {
+    cont.innerHTML = '<div style="font-size:12px;color:rgba(255,255,255,0.22);text-align:center;padding:10px 0;margin-bottom:10px">입원 기간을 추가해주세요</div>';
+    return;
+  }
+  inptRows.forEach((row, i) => {
+    const days = calcDays(row.start, row.end);
+    cont.innerHTML += `
+      <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:10px" id="inpt-row-${i}">
+        <div style="flex:1">
+          <label>시작일</label>
+          <input type="date" value="${row.start}" onchange="inptChange(${i},'start',this.value)">
+        </div>
+        <div style="flex:1">
+          <label>종료일</label>
+          <input type="date" value="${row.end}" min="${row.start}" onchange="inptChange(${i},'end',this.value)">
+        </div>
+        <div class="days-badge" style="margin-bottom:0px;min-width:90px">
+          ${days > 0 ? `<span>${days}일<br><span style="font-size:10px;color:rgba(255,255,255,0.5)">${days}토큰</span></span>` : '<span style="font-size:11px;color:rgba(255,255,255,0.3)">날짜 선택</span>'}
+        </div>
+        <button onclick="removeInptRow(${i})" style="background:rgba(231,76,60,0.15);border:1px solid rgba(231,76,60,0.3);border-radius:8px;color:#e74c3c;cursor:pointer;padding:10px;font-size:14px;height:42px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;font-family:'Noto Sans KR',sans-serif;flex-shrink:0" onmouseover="this.style.background='rgba(231,76,60,0.25)'" onmouseout="this.style.background='rgba(231,76,60,0.15)'">✕</button>
+      </div>`;
+  });
+}
+
+function inptChange(idx, field, val) {
+  inptRows[idx][field] = val;
+  inptRows[idx].days = calcDays(inptRows[idx].start, inptRows[idx].end);
+  renderInptRows();
+  updateAll();
+}
+
+// ── 외래 카운터 ───────────────────────────────────────────
+function changeOutpt(delta) {
+  outptCount = Math.max(0, outptCount + delta);
+  document.getElementById('outp-count').textContent = outptCount;
+  updateAll();
+}
+
+// ── 토큰 합산 & 프리뷰 ────────────────────────────────────
+function getTokens() {
+  const inptDays = inptRows.reduce((s, r) => s + (r.days || 0), 0);
+  const inptTokens = inptDays;
+  const outpTokens = Math.floor(outptCount / 2); // 2회당 1토큰
+  const outpHalf = outptCount % 2 === 1; // 홀수면 0.5
+  const outpExact = outptCount * 0.5;
+  return { inptDays, inptTokens, outpExact, total: inptTokens + outpExact };
+}
+
+function updateAll() {
+  const { inptDays, inptTokens, outpExact, total } = getTokens();
+
+  // 입원 합계 표시
+  document.getElementById('inpt-total-days').textContent =
+    `${inptDays}일 = ${inptTokens} 토큰`;
+
+  // 외래 토큰 표시
+  document.getElementById('outp-tokens').textContent = `${outpExact} 토큰`;
+
+  // 합산
+  document.getElementById('sum-inpt').textContent = inptTokens;
+  document.getElementById('sum-outp').textContent = outpExact;
+  document.getElementById('sum-total').textContent = total;
+
+  // 프리뷰
+  updatePreview();
+}
+
+function updatePreview() {
+  const vId = parseInt(document.getElementById('f-vac').value);
+  const bId = parseInt(document.getElementById('f-bak').value);
+  const { total } = getTokens();
+  const box = document.getElementById('preview-box');
+
+  if (vId && bId && vId !== bId && total > 0) {
+    const vP = state.professors.find(p => p.id === vId);
+    const bP = state.professors.find(p => p.id === bId);
+    box.style.display = 'block';
+    box.innerHTML = `
+      <span style="font-weight:700;color:${vP.color}">${vP.name}</span> 교수 →
+      <span style="font-weight:700;color:${bP.color}">${bP.name}</span> 교수에게
+      <span style="font-weight:800;color:#3498db;font-size:15px"> ${total} 토큰</span> 이전
+      <div style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:4px">
+        ${vP.name}: <span style="color:#e74c3c">${vP.tokens} → ${vP.tokens - total}</span> &nbsp;|&nbsp;
+        ${bP.name}: <span style="color:#2ecc71">${bP.tokens} → ${bP.tokens + total}</span>
+      </div>`;
+  } else {
+    box.style.display = 'none';
+  }
+}
+
+// ── 폼 제출 ───────────────────────────────────────────────
+async function submitForm() {
+  const vId = parseInt(document.getElementById('f-vac').value);
+  const bId = parseInt(document.getElementById('f-bak').value);
+  const note = document.getElementById('f-note').value;
+  const { inptDays, inptTokens, outpExact, total } = getTokens();
+
+  if (!vId || !bId) { showToast('교수를 선택해주세요.', 'error'); return; }
+  if (vId === bId) { showToast('휴가자와 백업자는 달라야 합니다.', 'error'); return; }
+  if (total <= 0) { showToast('입원 기간 또는 외래 횟수를 입력해주세요.', 'error'); return; }
+
+  const vP = state.professors.find(p => p.id === vId);
+  const bP = state.professors.find(p => p.id === bId);
+  const now = new Date().toISOString();
+  const nowDate = now.slice(0,10);
+  const fSnap = {...vP}, tSnap = {...bP};
+
+  // 입원 기간 정보
+  const inptPeriods = inptRows.filter(r => r.days > 0).map(r => ({start: r.start, end: r.end, days: r.days}));
+  const inptStart = inptPeriods.length > 0 ? inptPeriods[0].start : nowDate;
+  const inptEnd = inptPeriods.length > 0 ? inptPeriods[inptPeriods.length-1].end : nowDate;
+
+  state.professors = state.professors.map(p => {
+    if (p.id === vId) return {...p, tokens: p.tokens - total};
+    if (p.id === bId) return {...p, tokens: p.tokens + total};
+    return p;
+  });
+
+  const tx = {
+    id: 'TX-' + Date.now(), date: now,
+    from: fSnap, to: tSnap,
+    total, inptTokens, outpExact,
+    inptDays, outptCount: outptCount,
+    inptPeriods,
+    startDate: inptStart, endDate: inptEnd,
+    note
+  };
+  state.transactions.unshift(tx);
+  state.vacations.unshift({...tx, vacationer: fSnap, backup: tSnap});
+
+  if (inptPeriods.length > 0) state.inptCount++;
+  if (outptCount > 0) state.outpCount++;
+
+  // 리셋
+  document.getElementById('f-vac').value = '';
+  document.getElementById('f-bak').value = '';
+  document.getElementById('f-note').value = '';
+  inptRows = [];
+  outptCount = 0;
+  document.getElementById('outp-count').textContent = '0';
+  renderInptRows();
+  updateAll();
+  populateSelects();
+
+  showToast(`✅ ${fSnap.name} → ${tSnap.name} ${total} 토큰 이전 완료!`);
+  showView('dashboard', document.querySelector('.nav-btn'));
+}
+
+// ── Select 채우기 ─────────────────────────────────────────
+function populateSelects() {
+  const vs = document.getElementById('f-vac');
+  const bs = document.getElementById('f-bak');
+  const cv = vs.value, cb = bs.value;
+  vs.innerHTML = '<option value="">선택하세요</option>';
+  bs.innerHTML = '<option value="">선택하세요</option>';
+  state.professors.forEach(p => {
+    const tokStr = p.tokens >= 0 ? `+${p.tokens}` : `${p.tokens}`;
+    vs.innerHTML += `<option value="${p.id}" ${cv==p.id?'selected':''}>${p.name} (${tokStr}토큰)</option>`;
+    bs.innerHTML += `<option value="${p.id}" ${cb==p.id?'selected':''}>${p.name} (${tokStr}토큰)</option>`;
+  });
+}
+
+// ── 대시보드 렌더 ─────────────────────────────────────────
+function renderDashboard() {
+  document.getElementById('stat-profs').textContent = state.professors.length;
+  document.getElementById('stat-txs').textContent = state.transactions.length;
+  document.getElementById('stat-inpt').textContent = state.inptCount;
+  document.getElementById('stat-outp').textContent = state.outpCount;
+
+  const allT = state.professors.map(p => p.tokens);
+  const maxAbs = Math.max(1, ...allT.map(t => Math.abs(t)));
+
+  const grid = document.getElementById('token-grid');
+  grid.innerHTML = '';
+
+  state.professors.forEach(prof => {
+    const given   = state.transactions.filter(t => t.from.id === prof.id);
+    const rcvd    = state.transactions.filter(t => t.to.id   === prof.id);
+    const tG = given.reduce((s,t) => s + t.total, 0);
+    const tR = rcvd.reduce((s,t)  => s + t.total, 0);
+
+    const isNeg = prof.tokens < 0;
+    const isPos = prof.tokens > 0;
+    const tc = isPos ? '#2ecc71' : isNeg ? '#e74c3c' : 'rgba(255,255,255,0.35)';
+    const barW = Math.abs(prof.tokens) / maxAbs * 100;
+    const barColor = isPos
+      ? `linear-gradient(90deg, ${prof.color}66, ${prof.color})`
+      : isNeg
+      ? `linear-gradient(90deg, #e74c3c88, #e74c3c)`
+      : `rgba(255,255,255,0.1)`;
+
+    let flow = '';
+    if (rcvd.length === 0 && given.length === 0) {
+      flow = '<div class="no-tx">거래 내역 없음</div>';
+    } else {
+      if (rcvd.length > 0) {
+        const rows = rcvd.map(tx => {
+          const details = [];
+          if (tx.inptDays > 0) details.push(`입원 ${tx.inptDays}일(${tx.inptTokens}토큰)`);
+          if (tx.outptCount > 0) details.push(`외래 ${tx.outptCount}회(${tx.outpExact}토큰)`);
+          return `<div class="flow-row">
+            <div class="flow-row-left">
+              <span style="color:${tx.from.color};font-weight:600">${tx.from.name}</span>으로부터
+              <span style="color:#2ecc71;font-weight:700"> +${tx.total}</span>
+              <div class="flow-detail">${details.join(' · ')} · ${fmtDate(tx.date)}</div>
+            </div>
+          </div>`;
+        }).join('');
+        flow += `<div class="flow-rcv"><div class="flow-title" style="color:#2ecc71">▲ 받은 토큰 합계 +${tR}</div>${rows}</div>`;
+      }
+      if (given.length > 0) {
+        const rows = given.map(tx => {
+          const details = [];
+          if (tx.inptDays > 0) details.push(`입원 ${tx.inptDays}일(${tx.inptTokens}토큰)`);
+          if (tx.outptCount > 0) details.push(`외래 ${tx.outptCount}회(${tx.outpExact}토큰)`);
+          return `<div class="flow-row">
+            <div class="flow-row-left">
+              <span style="color:${tx.to.color};font-weight:600">${tx.to.name}</span>에게
+              <span style="color:#e74c3c;font-weight:700"> -${tx.total}</span>
+              <div class="flow-detail">${details.join(' · ')} · ${fmtDate(tx.date)}</div>
+            </div>
+          </div>`;
+        }).join('');
+        flow += `<div class="flow-gvn"><div class="flow-title" style="color:#e74c3c">▼ 준 토큰 합계 -${tG}</div>${rows}</div>`;
+      }
+    }
+
+    const tokenDisp = isPos ? `+${prof.tokens}` : `${prof.tokens}`;
+
+    grid.innerHTML += `
+      <div class="card prof-card">
+        <div class="prof-header">
+          <div class="prof-avatar" style="background:${prof.color}25;border:2px solid ${prof.color}77;color:${prof.color}">${prof.initials}</div>
+          <div>
+            <div class="prof-name">${prof.name}</div>
+            <div class="prof-dept">혈액종양내과</div>
+          </div>
+          <div class="prof-tokens">
+            <div class="token-num" style="color:${tc}">${tokenDisp}</div>
+            <div class="token-lbl">토큰</div>
+          </div>
+        </div>
+        <div class="bar-bg">
+          <div class="bar" style="width:${barW}%;background:${barColor}"></div>
+        </div>
+        ${flow}
+      </div>`;
+  });
+
+  // 휴가 목록
+  const vs = document.getElementById('vac-section');
+  const vl = document.getElementById('vac-list');
+  if (state.vacations.length > 0) {
+    vs.style.display = 'block';
+    vl.innerHTML = state.vacations.map(v => {
+      const details = [];
+      if (v.inptDays > 0) {
+        const periods = v.inptPeriods.map(p => `${p.start}~${p.end}(${p.days}일)`).join(', ');
+        details.push(`🏥 입원 ${v.inptDays}일 [${periods}] = ${v.inptTokens}토큰`);
+      }
+      if (v.outptCount > 0) details.push(`🩺 외래 ${v.outptCount}회 = ${v.outpExact}토큰`);
+      return `
+        <div class="card vac-row">
+          <div class="mini-av" style="background:${v.vacationer.color}25;border:1.5px solid ${v.vacationer.color}66;color:${v.vacationer.color}">${v.vacationer.initials}</div>
+          <div>
+            <div style="font-weight:600;font-size:14px">${v.vacationer.name} <span style="color:rgba(255,255,255,0.3);font-weight:400">교수</span></div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:2px">${details.join(' &nbsp;|&nbsp; ')}</div>
+            ${v.note ? `<div style="font-size:11px;color:rgba(255,255,255,0.28);margin-top:2px">${v.note}</div>` : ''}
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
+            <span style="font-size:12px;color:rgba(255,255,255,0.35)">백업</span>
+            <div class="mini-av" style="background:${v.backup.color}25;border:1.5px solid ${v.backup.color}66;color:${v.backup.color}">${v.backup.initials}</div>
+            <span style="font-weight:600;font-size:14px">${v.backup.name}</span>
+            <div class="token-badge-pos">+${v.total}</div>
+          </div>
+        </div>`;
+    }).join('');
+  } else {
+    vs.style.display = 'none';
+  }
+}
+
+// ── 내역 렌더 ─────────────────────────────────────────────
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  if (state.transactions.length === 0) {
+    list.innerHTML = '<div class="card empty">아직 크레딧 이전 내역이 없습니다</div>';
+    return;
+  }
+  list.innerHTML = state.transactions.map(tx => {
+    const details = [];
+    if (tx.inptDays > 0) {
+      const periods = tx.inptPeriods.map(p => `${p.start}~${p.end}(${p.days}일)`).join(', ');
+      details.push(`🏥 입원 ${tx.inptDays}일 [${periods}] = ${tx.inptTokens}토큰`);
+    }
+    if (tx.outptCount > 0) details.push(`🩺 외래 ${tx.outptCount}회 = ${tx.outpExact}토큰`);
+    return `
+      <div class="card hist-row">
+        <div class="tx-date">${fmtDate(tx.date)}</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="mini-av" style="background:${tx.from.color}25;border:1.5px solid ${tx.from.color}66;color:${tx.from.color}">${tx.from.initials}</div>
+          <div>
+            <div style="font-weight:600;font-size:14px">${tx.from.name}</div>
+            <div style="font-size:11px;color:#e74c3c;font-weight:600">-${tx.total} 토큰</div>
+          </div>
+        </div>
+        <div class="tx-arrow">
+          <div class="tx-badge-main">${tx.total} 토큰</div>
+          <div class="tx-arr">→</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="mini-av" style="background:${tx.to.color}25;border:1.5px solid ${tx.to.color}66;color:${tx.to.color}">${tx.to.initials}</div>
+          <div>
+            <div style="font-weight:600;font-size:14px">${tx.to.name}</div>
+            <div style="font-size:11px;color:#2ecc71;font-weight:600">+${tx.total} 토큰</div>
+          </div>
+        </div>
+        <div class="tx-meta">
+          <div style="font-size:11px;color:rgba(255,255,255,0.38)">${details.join(' | ')}</div>
+          ${tx.note ? `<div class="tx-note">${tx.note}</div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// 초기화
+// DB에서 데이터 로드 후 초기화
+populateSelects();
+renderInptRows();
+updateAll();
+loadFromDB();
+
+
+async function doReset(){
+  showToast('삭제 중...', 'error');
+  try {
+    // 전체 삭제: id가 비어있지 않은 모든 행 삭제
+    await supaFetch('transactions?id=neq.', 'DELETE');
+  } catch(e) {
+    console.error('reset DB error', e);
+  }
+
+  state={professors:PROFS.map(function(p){return Object.assign({},p,{tokens:0});}),transactions:[],vacations:[],inptCount:0,outpCount:0};
+  inptRows=[];outptCount=0;
+  document.getElementById('outp-count').textContent='0';
+  renderInptRows();updateAll();populateSelects();renderDashboard();
+  document.getElementById('mstep_confirm').classList.add('mhidden');
+  document.getElementById('mstep2').classList.remove('mhidden');
+}
+function openModal(){
+  document.getElementById('mstep1').classList.remove('mhidden');
+  document.getElementById('mstep_confirm').classList.add('mhidden');
+  document.getElementById('mstep2').classList.add('mhidden');
+  document.getElementById('modal-pw').value='';
+  document.getElementById('modal-err').textContent='';
+  document.getElementById('reset-modal').classList.add('open');
+  setTimeout(function(){document.getElementById('modal-pw').focus();},300);
+}
+function closeModal(){
+  document.getElementById('reset-modal').classList.remove('open');
+}
+document.addEventListener('DOMContentLoaded',function(){
+  document.getElementById('reset-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+});
+function confirmReset(){
+  var pw=document.getElementById('modal-pw').value;
+  var inp=document.getElementById('modal-pw');
+  var err=document.getElementById('modal-err');
+  if(!pw){err.textContent='\ube44\ubc00\ubc88\ud638\ub97c \uc785\ub825\ud574\uc8fc\uc138\uc694.';return;}
+  if(pw!=='GNUH-IH2030'){
+    err.textContent='\ube44\ubc00\ubc88\ud638\uac00 \uc62c\ubc14\ub974\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4.';
+    inp.classList.add('shake');
+    setTimeout(function(){inp.classList.remove('shake');},400);
+    inp.value='';
+    return;
+  }
+  document.getElementById('mstep1').classList.add('mhidden');
+  document.getElementById('mstep_confirm').classList.remove('mhidden');
+}
+</script>
+</body>
+</html>
