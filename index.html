@@ -197,28 +197,35 @@ const SUPA_URL = 'https://cntjphqwdwsmsvwawwnf.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNudGpwaHF3ZHdzbXN2d2F3d25mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2NTQyNjYsImV4cCI6MjA4ODIzMDI2Nn0.dkfSw_rviA01oKutr437CKPvuN5um_7_DvfuKdh3uGQ';
 
 async function supaFetch(path, method, body) {
+  const m = method || 'GET';
+  const headers = {
+    'apikey': SUPA_KEY,
+    'Authorization': 'Bearer ' + SUPA_KEY,
+    'Content-Type': 'application/json'
+  };
+  if (m === 'POST') headers['Prefer'] = 'return=minimal';
+  if (m === 'DELETE') headers['Prefer'] = 'return=minimal';
   const res = await fetch(SUPA_URL + '/rest/v1/' + path, {
-    method: method || 'GET',
-    headers: {
-      'apikey': SUPA_KEY,
-      'Authorization': 'Bearer ' + SUPA_KEY,
-      'Content-Type': 'application/json',
-      'Prefer': method === 'POST' ? 'return=minimal' : ''
-    },
+    method: m,
+    headers: headers,
     body: body ? JSON.stringify(body) : undefined
   });
   if (!res.ok) {
     const err = await res.text();
+    console.error('Supabase error:', m, path, err);
     throw new Error(err);
   }
-  if (method === 'GET' || !method) return res.json();
+  const ct = res.headers.get('content-type') || '';
+  if (ct.includes('json') && m === 'GET') return res.json();
   return true;
 }
 
 // DB에서 전체 거래 내역 불러오기
 async function loadFromDB() {
   try {
-    const rows = await supaFetch('transactions?order=date.desc', 'GET');
+    console.log('DB 로드 시작...');
+    const rows = await supaFetch('transactions?order=date.desc&select=*', 'GET');
+    console.log('DB 로드 완료:', rows.length, '건');
     state.transactions = rows.map(r => ({
       id: r.id,
       date: r.date,
@@ -277,7 +284,7 @@ async function saveToDB(tx) {
     return true;
   } catch(e) {
     console.error('DB 저장 오류:', e);
-    showToast('저장 실패: ' + e.message, 'error');
+    showToast('저장 실패! 네트워크 또는 권한 오류: ' + e.message, 'error');
     return false;
   }
 }
@@ -868,13 +875,12 @@ loadFromDB();
 
 async function doReset(){
   showToast('삭제 중...', 'error');
-  // DB에서 모두 삭제
   try {
-    const rows = await supaFetch('transactions?select=id', 'GET');
-    for (const r of rows) {
-      await supaFetch('transactions?id=eq.' + r.id, 'DELETE');
-    }
-  } catch(e) { console.error('reset DB error', e); }
+    // 전체 삭제: id가 비어있지 않은 모든 행 삭제
+    await supaFetch('transactions?id=neq.', 'DELETE');
+  } catch(e) {
+    console.error('reset DB error', e);
+  }
 
   state={professors:PROFS.map(function(p){return Object.assign({},p,{tokens:0});}),transactions:[],vacations:[],inptCount:0,outpCount:0};
   inptRows=[];outptCount=0;
