@@ -158,25 +158,172 @@ select option { background: #1a2b3c; color: #e8f0f8; }
 .modal-ok2:hover { filter:brightness(1.1);transform:translateY(-1px); }
 .mhidden { display:none; }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+function exportExcel() {
+  if(state.transactions.length === 0){ showToast('저장할 기록이 없습니다.', 'error'); return; }
+  var wb = XLSX.utils.book_new();
+
+  // Sheet 1: 토큰 현황
+  var tokenData = [['이름','현재 토큰','받은 토큰 합계','준 토큰 합계']];
+  state.professors.forEach(function(p){
+    var rcv = state.transactions.filter(function(t){return t.to.id===p.id;}).reduce(function(s,t){return s+t.total;},0);
+    var gvn = state.transactions.filter(function(t){return t.from.id===p.id;}).reduce(function(s,t){return s+t.total;},0);
+    tokenData.push([p.name, p.tokens, rcv, gvn]);
+  });
+  var ws1 = XLSX.utils.aoa_to_sheet(tokenData);
+  XLSX.utils.book_append_sheet(wb, ws1, '토큰현황');
+
+  // Sheet 2: 전체 내역
+  var txData = [['날짜','휴가교수','백업교수','총토큰','입원일수','입원토큰','외래횟수','외래토큰','메모']];
+  state.transactions.forEach(function(tx){
+    var d = new Date(tx.date);
+    var ds = d.getFullYear()+'.'+(d.getMonth()+1).toString().padStart(2,'0')+'.'+d.getDate().toString().padStart(2,'0');
+    var periods = tx.inptPeriods.map(function(p){return p.start+'~'+p.end+'('+p.days+'일)';}).join(', ');
+    txData.push([ds, tx.from.name, tx.to.name, tx.total, tx.inptDays, tx.inptTokens, tx.outptCount, tx.outpExact, tx.note||'']);
+  });
+  var ws2 = XLSX.utils.aoa_to_sheet(txData);
+  XLSX.utils.book_append_sheet(wb, ws2, '크레딧내역');
+
+  var today = new Date();
+  var fn = 'GNUH-IH-credit_'+today.getFullYear()+(today.getMonth()+1).toString().padStart(2,'0')+today.getDate().toString().padStart(2,'0')+'.xlsx';
+  XLSX.writeFile(wb, fn);
+}
+</script>
+
+<script>
+// ── Supabase 설정 ─────────────────────────────────────────
+const SUPA_URL = 'https://cntjphqwdwsmsvwawwnf.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNudGpwaHF3ZHdzbXN2d2F3d25mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2NTQyNjYsImV4cCI6MjA4ODIzMDI2Nn0.dkfSw_rviA01oKutr437CKPvuN5um_7_DvfuKdh3uGQ';
+
+async function supaFetch(path, method, body) {
+  const res = await fetch(SUPA_URL + '/rest/v1/' + path, {
+    method: method || 'GET',
+    headers: {
+      'apikey': SUPA_KEY,
+      'Authorization': 'Bearer ' + SUPA_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': method === 'POST' ? 'return=minimal' : ''
+    },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(err);
+  }
+  if (method === 'GET' || !method) return res.json();
+  return true;
+}
+
+// DB에서 전체 거래 내역 불러오기
+async function loadFromDB() {
+  try {
+    const rows = await supaFetch('transactions?order=date.desc', 'GET');
+    state.transactions = rows.map(r => ({
+      id: r.id,
+      date: r.date,
+      from: { id: r.from_id, name: r.from_name, color: r.from_color, initials: r.from_initials },
+      to:   { id: r.to_id,   name: r.to_name,   color: r.to_color,   initials: r.to_initials },
+      total: r.total,
+      inptTokens: r.inpt_tokens,
+      outpExact: r.outp_exact,
+      inptDays: r.inpt_days,
+      outptCount: r.outpt_count,
+      inptPeriods: r.inpt_periods || [],
+      note: r.note || ''
+    }));
+    // 토큰 재계산
+    state.professors = PROFS.map(p => ({...p, tokens: 0}));
+    state.transactions.forEach(tx => {
+      state.professors = state.professors.map(p => {
+        if (p.id === tx.from.id) return {...p, tokens: p.tokens - tx.total};
+        if (p.id === tx.to.id)   return {...p, tokens: p.tokens + tx.total};
+        return p;
+      });
+    });
+    state.vacations = [...state.transactions];
+    state.inptCount = state.transactions.filter(t => t.inptDays > 0).length;
+    state.outpCount = state.transactions.filter(t => t.outptCount > 0).length;
+    renderDashboard();
+    populateSelects();
+  } catch(e) {
+    console.error('DB 로드 오류:', e);
+    showToast('데이터 로드 실패. 네트워크를 확인하세요.', 'error');
+  }
+}
+
+// DB에 거래 저장
+async function saveToDB(tx) {
+  try {
+    await supaFetch('transactions', 'POST', {
+      id: tx.id,
+      date: tx.date,
+      from_id: tx.from.id,
+      from_name: tx.from.name,
+      from_color: tx.from.color,
+      from_initials: tx.from.initials,
+      to_id: tx.to.id,
+      to_name: tx.to.name,
+      to_color: tx.to.color,
+      to_initials: tx.to.initials,
+      total: tx.total,
+      inpt_tokens: tx.inptTokens,
+      outp_exact: tx.outpExact,
+      inpt_days: tx.inptDays,
+      outpt_count: tx.outptCount,
+      inpt_periods: tx.inptPeriods,
+      note: tx.note || ''
+    });
+    return true;
+  } catch(e) {
+    console.error('DB 저장 오류:', e);
+    showToast('저장 실패: ' + e.message, 'error');
+    return false;
+  }
+}
+
+// DB 전체 삭제 (리셋)
+async function deleteAllFromDB() {
+  try {
+    await supaFetch('transactions?id=neq.NEVER_MATCH_THIS', 'DELETE');
+    // 위 방법이 안되면 아래 방법
+    const rows = await supaFetch('transactions?select=id', 'GET');
+    for (const r of rows) {
+      await supaFetch('transactions?id=eq.' + r.id, 'DELETE');
+    }
+    return true;
+  } catch(e) {
+    console.error('DB 삭제 오류:', e);
+    return false;
+  }
+}
+</script>
 </head>
 <body>
 <div id="toast"></div>
 <div class="modal-overlay" id="reset-modal"><div class="modal-box">
 <div id="mstep1"><span class="modal-icon-big">&#128272;</span>
 <div class="modal-title2">&#44288;&#47532;&#51088; &#51064;&#51613;</div>
-<div class="modal-sub2">&#51060; &#44592;&#45733;&#51008; <strong style="color:#E8A87C">&#44053;&#51221;&#54984; &#44368;&#49688;</strong>&#47564; &#49324;&#50857;&#54624; &#49688; &#51080;&#49845;&#45768;&#45796;.<br>&#44288;&#47532;&#51088; &#48708;&#48128;&#48264;&#54840;&#47484; &#51077;&#47141;&#54644;&#51452;&#49464;&#50836;.</div>
-<div class="modal-warn2">&#9888;&#65039; <strong>&#51452;&#51032;</strong>: &#47532;&#49483; &#49884; &#47784;&#46304; &#55734;&#44032; &#44592;&#47197;&#44284; &#53664;&#53�;&#51060; &#52488;&#44592;&#54868;&#46418;&#47728; <strong>&#48373;&#44396;&#44032; &#48520;&#44032;&#45733;</strong>&#54633;&#45768;&#45796;.</div>
+<div class="modal-sub2">이 기능은 <strong>관리자만</strong> 사용할 수 있습니다.<br>관리자 비밀번호를 입력해주세요.</div>
+<div class="modal-warn2">&#x26A0;&#xFE0F; <strong>주의</strong>: Reset시 모든 기록이 삭제되어 <strong>복구가 불가능</strong>합니다.</div>
 <input type="password" class="modal-pw-input" id="modal-pw" placeholder="&#48708;&#48128;&#48264;&#54840; &#51077;&#47141;" onkeydown="if(event.key===String.fromCharCode(13))confirmReset()">
 <div class="modal-err2" id="modal-err"></div>
 <div class="modal-btn-row2">
 <button class="modal-cancel2" onclick="closeModal()">&#52712;&#49548;</button>
 <button class="modal-ok2" onclick="confirmReset()">&#128275; &#51064;&#51613; &#54980; &#47532;&#49483;</button>
 </div></div>
+<div id="mstep_confirm" class="mhidden"><div style="padding:10px 0">
+<div style="font-size:42px;margin-bottom:16px;text-align:center">&#x26A0;&#xFE0F;</div>
+<p style="font-size:14px;line-height:1.8;color:rgba(255,255,255,0.75);margin-bottom:24px;text-align:center">정말 reset을 진행하시겠습니까?<br><strong style="color:#f1948a">모든 기록과 토큰이 삭제되며<br>복구가 불가능합니다</strong></p>
+<div style="display:flex;gap:10px">
+<button class="modal-cancel2" onclick="closeModal()">취소</button>
+<button class="modal-ok2" style="flex:2;padding:12px" onclick="doReset()">네, 리셋을 진행하겠습니다</button>
+</div></div></div>
 <div id="mstep2" class="mhidden"><div style="text-align:center;padding:10px 0">
-<div style="font-size:52px;margin-bottom:14px">&#9989;</div>
-<h3 style="font-size:18px;font-weight:700;margin-bottom:8px">&#47532;&#49483; &#50756;&#47308;</h3>
-<p style="margin-bottom:20px;font-size:13px;color:rgba(255,255,255,0.45)">&#47784;&#46304; &#55734;&#44032; &#44592;&#47197;&#44284; &#53664;&#53670;&#51060;<br>&#52488;&#44592;&#54868;&#46418;&#50632;&#49845;&#45768;&#45796;.</p>
-<button class="modal-ok2" style="width:100%;padding:12px" onclick="closeModal()">&#54869;&#51064;</button>
+<div style="font-size:52px;margin-bottom:14px">&#x2705;</div>
+<h3 style="font-size:18px;font-weight:700;margin-bottom:8px">기록이 지워졌습니다</h3>
+<p style="margin-bottom:20px;font-size:13px;color:rgba(255,255,255,0.45)">모든 토큰과 휴가 기록이<br>초기화되었습니다.</p>
+<button class="modal-ok2" style="width:100%;padding:12px" onclick="closeModal()">확인</button>
 </div></div>
 </div></div>
 <div class="header">
@@ -193,6 +340,7 @@ select option { background: #1a2b3c; color: #e8f0f8; }
     <button class="nav-btn" onclick="showView('history',this)">📋 내역</button>
     <div style="width:1px;height:24px;background:rgba(255,255,255,0.1);margin:0 4px"></div>
     <button class="reset-btn" onclick="openModal()">🔄 전체 리셋</button>
+    <button onclick="exportExcel()" style="padding:6px 12px;border:1px solid rgba(46,204,113,0.4);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;background:rgba(46,204,113,0.1);color:#2ecc71;font-family:Noto Sans KR,sans-serif;transition:all 0.2s" onmouseover="this.style.background='rgba(46,204,113,0.22)'" onmouseout="this.style.background='rgba(46,204,113,0.1)'">📥 엑셀 저장</button>
   </nav>
 </div>
 
@@ -476,7 +624,7 @@ function updatePreview() {
 }
 
 // ── 폼 제출 ───────────────────────────────────────────────
-function submitForm() {
+async function submitForm() {
   const vId = parseInt(document.getElementById('f-vac').value);
   const bId = parseInt(document.getElementById('f-bak').value);
   const note = document.getElementById('f-note').value;
@@ -711,13 +859,33 @@ function renderHistory() {
 }
 
 // 초기화
-renderDashboard();
+// DB에서 데이터 로드 후 초기화
 populateSelects();
 renderInptRows();
 updateAll();
+loadFromDB();
 
+
+async function doReset(){
+  showToast('삭제 중...', 'error');
+  // DB에서 모두 삭제
+  try {
+    const rows = await supaFetch('transactions?select=id', 'GET');
+    for (const r of rows) {
+      await supaFetch('transactions?id=eq.' + r.id, 'DELETE');
+    }
+  } catch(e) { console.error('reset DB error', e); }
+
+  state={professors:PROFS.map(function(p){return Object.assign({},p,{tokens:0});}),transactions:[],vacations:[],inptCount:0,outpCount:0};
+  inptRows=[];outptCount=0;
+  document.getElementById('outp-count').textContent='0';
+  renderInptRows();updateAll();populateSelects();renderDashboard();
+  document.getElementById('mstep_confirm').classList.add('mhidden');
+  document.getElementById('mstep2').classList.remove('mhidden');
+}
 function openModal(){
   document.getElementById('mstep1').classList.remove('mhidden');
+  document.getElementById('mstep_confirm').classList.add('mhidden');
   document.getElementById('mstep2').classList.add('mhidden');
   document.getElementById('modal-pw').value='';
   document.getElementById('modal-err').textContent='';
@@ -735,19 +903,15 @@ function confirmReset(){
   var inp=document.getElementById('modal-pw');
   var err=document.getElementById('modal-err');
   if(!pw){err.textContent='\ube44\ubc00\ubc88\ud638\ub97c \uc785\ub825\ud574\uc8fc\uc138\uc694.';return;}
-  if(pw!=='newatp0168'){
+  if(pw!=='GNUH-IH2030'){
     err.textContent='\ube44\ubc00\ubc88\ud638\uac00 \uc62c\ubc14\ub974\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4.';
     inp.classList.add('shake');
     setTimeout(function(){inp.classList.remove('shake');},400);
     inp.value='';
     return;
   }
-  state={professors:PROFS.map(function(p){return Object.assign({},p,{tokens:0});}),transactions:[],vacations:[],inptCount:0,outpCount:0};
-  inptRows=[];outptCount=0;
-  document.getElementById('outp-count').textContent='0';
-  renderInptRows();updateAll();populateSelects();renderDashboard();
   document.getElementById('mstep1').classList.add('mhidden');
-  document.getElementById('mstep2').classList.remove('mhidden');
+  document.getElementById('mstep_confirm').classList.remove('mhidden');
 }
 </script>
 </body>
